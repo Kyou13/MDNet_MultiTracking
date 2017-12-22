@@ -1,8 +1,10 @@
+# -*- coding:utf-8 -*-
 import numpy as np
 from PIL import Image
 
 from utils import *
 
+# bbox: initial bbox ,n:1000
 def gen_samples(generator, bbox, n, overlap_range=None, scale_range=None):
     
     if overlap_range is None and scale_range is None:
@@ -10,7 +12,7 @@ def gen_samples(generator, bbox, n, overlap_range=None, scale_range=None):
     
     else:
         samples = None
-        remain = n
+        remain = n #1000
         factor = 2
         while remain > 0 and factor < 16:
             samples_ = generator(bbox, remain*factor)
@@ -20,7 +22,7 @@ def gen_samples(generator, bbox, n, overlap_range=None, scale_range=None):
                 r = overlap_ratio(samples_, bbox)
                 idx *= (r >= overlap_range[0]) * (r <= overlap_range[1])
             if scale_range is not None:
-                s = np.prod(samples_[:,2:], axis=1) / np.prod(bbox[2:])
+                s = np.prod(samples_[:,2:], axis=1) / np.prod(bbox[2:]) # 行に積をかける
                 idx *= (s >= scale_range[0]) * (s <= scale_range[1])
             
             samples_ = samples_[idx,:]
@@ -51,15 +53,20 @@ class SampleGenerator():
 
         # (center_x, center_y, w, h)
         sample = np.array([bb[0]+bb[2]/2, bb[1]+bb[3]/2, bb[2], bb[3]], dtype='float32')
+        # (n, 4)
         samples = np.tile(sample[None,:],(n,1))
 
-        # vary aspect ratio
+        # vary(change) aspect ratio
         if self.aspect_f is not None:
+            # 0~1
             ratio = np.random.rand(n,1)*2-1
+            # 列方向に結合
+            # w,hの値変化
             samples[:,2:] *= self.aspect_f ** np.concatenate([ratio, -ratio],axis=1)
 
         # sample generation
         if self.type=='gaussian':
+            # -1 ~ 1の正規分布 * target w,h * trans_f を座標に
             samples[:,:2] += self.trans_f * np.mean(bb[2:]) * np.clip(0.5*np.random.randn(n,2),-1,1)
             samples[:,2:] *= self.scale_f ** np.clip(0.5*np.random.randn(n,1),-1,1)
 

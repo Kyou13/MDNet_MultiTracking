@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 import sys
 import numpy as np
 from PIL import Image
@@ -13,14 +14,15 @@ class RegionExtractor():
 
         self.image = np.asarray(image)
         self.samples = samples
-        self.crop_size = crop_size
+        self.crop_size = crop_size # 107
         self.padding = padding
-        self.batch_size = batch_size
+        self.batch_size = batch_size # 256
         self.shuffle = shuffle
 
         self.index = np.arange(len(samples))
         self.pointer = 0
 
+        # channelごとの平均
         self.mean = self.image.mean(0).mean(0).astype('float32')
 
     def __iter__(self):
@@ -34,6 +36,7 @@ class RegionExtractor():
             next_pointer = min(self.pointer + self.batch_size, len(self.samples))
             index = self.index[self.pointer:next_pointer]
             self.pointer = next_pointer
+            import pdb; pdb.set_trace()
 
             regions = self.extract_regions(index)
             regions = torch.from_numpy(regions)

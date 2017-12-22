@@ -6,3 +6,4 @@ modules/*.pyc
 pretrain/*.pyc
 tracking/*.pyc
 models/imagenet-vgg-m.mat
+models

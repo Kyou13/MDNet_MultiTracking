@@ -1,21 +1,24 @@
 from collections import OrderedDict
 
 opts = OrderedDict()
-opts['use_gpu'] = True
+opts['use_gpu'] = False
 
 opts['model_path'] = '../models/mdnet_vot-otb.pth'
 
 opts['img_size'] = 107
 opts['padding'] = 16
 
-opts['batch_pos'] = 32
-opts['batch_neg'] = 96
-opts['batch_neg_cand'] = 1024
+#Jopts['batch_pos'] = 32
+opts['batch_pos'] = 64
+#opts['batch_neg'] = 96
+opts['batch_neg'] = 192
+#opts['batch_neg_cand'] = 1024
+opts['batch_neg_cand'] = 2048
 opts['batch_test'] = 256
 
 opts['n_samples'] = 256
 opts['trans_f'] = 0.6
-opts['scale_f'] = 1.05
+opts['scale_f'] = 1.5
 opts['trans_f_expand'] = 1.5
 
 opts['n_bbreg'] = 1000
@@ -23,7 +26,8 @@ opts['overlap_bbreg'] = [0.6, 1]
 opts['scale_bbreg'] = [1, 2]
 
 opts['lr_init'] = 0.0001
-opts['maxiter_init'] = 30
+#opts['maxiter_init'] = 30
+opts['maxiter_init'] = 60
 opts['n_pos_init'] = 500
 opts['n_neg_init'] = 5000
 opts['overlap_pos_init'] = [0.7, 1]

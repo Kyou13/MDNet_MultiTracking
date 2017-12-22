@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 import os
 import scipy.io
 import numpy as np
@@ -9,6 +10,9 @@ from torch.autograd import Variable
 import torch
 
 def append_params(params, module, prefix):
+    # ex.child = Conv2d(....)
+    # ex.prefix conv1
+    
     for child in module.children():
         for k,p in child._parameters.iteritems():
             if p is None: continue
@@ -66,7 +70,7 @@ class MDNet(nn.Module):
                                         nn.ReLU()))]))
         
         self.branches = nn.ModuleList([nn.Sequential(nn.Dropout(0.5), 
-                                                     nn.Linear(512, 2)) for _ in range(K)])
+                                                     nn.Linear(512, 3)) for _ in range(K)])
         
         if model_path is not None:
             if os.path.splitext(model_path)[1] == '.pth':
@@ -75,16 +79,22 @@ class MDNet(nn.Module):
                 self.load_mat_model(model_path)
             else:
                 raise RuntimeError("Unkown model format: %s" % (model_path))
+        # 構築    
         self.build_param_dict()
 
     def build_param_dict(self):
         self.params = OrderedDict()
+        # moduleの名前とそれ自信を返す
         for name, module in self.layers.named_children():
             append_params(self.params, module, name)
         for k, module in enumerate(self.branches):
             append_params(self.params, module, 'fc6_%d'%(k))
 
     def set_learnable_params(self, layers):
+        # 全層のweight,biasで回す
+        # conv1 ~ fc6_0
+        # train はfc,conv全層
+        # fc層のみ勾配の計算を行う 
         for k, p in self.params.iteritems():
             if any([k.startswith(l) for l in layers]):
                 p.requires_grad = True
@@ -141,6 +151,8 @@ class BinaryLoss(nn.Module):
         super(BinaryLoss, self).__init__()
  
     def forward(self, pos_score, neg_score):
+        # log(e(x)/sum(e(x)))
+        # 小さいほど
         pos_loss = -F.log_softmax(pos_score)[:,1]
         neg_loss = -F.log_softmax(neg_score)[:,0]
         
@@ -161,10 +173,23 @@ class Accuracy():
 
 
 class Precision():
-    def __call__(self, pos_score, neg_score):
+    def __call__(self, regions, labels):
         
-        scores = torch.cat((pos_score[:,1], neg_score[:,1]), 0)
-        topk = torch.topk(scores, pos_score.size(0))[1]
-        prec = (topk < pos_score.size(0)).float().sum() / (pos_score.size(0)+1e-8)
+        scores_1 = regions[:,0]
+        scores_2 = regions[:,1]
+        length_1 = (len(np.where(labels.data.numpy()==0)[0]))
+        length_2 = (len(np.where(labels.data.numpy()==1)[0]))
+        topk_1 = torch.topk(scores_1, length_1)[1]
+        topk_2 = torch.topk(scores_2, length_2)[1]
+        s1 = 0
+        s2 = 0
+        for i in range(0, len(regions), 32):
+            for j in range(i,i+4):
+                s1 += len(np.where(topk_1.data.numpy() == j)[0])
+        for i in range(16, len(regions), 32):
+            for j in range(i,i+4):
+                s2 += len(np.where(topk_2.data.numpy() == j)[0])
+
+        prec = s1 / (length_1+1e-8) + s2/(length_2+1e-8)
         
-        return prec.data[0]
+        return prec
