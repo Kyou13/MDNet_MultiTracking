@@ -36,7 +36,6 @@ class RegionExtractor():
             next_pointer = min(self.pointer + self.batch_size, len(self.samples))
             index = self.index[self.pointer:next_pointer]
             self.pointer = next_pointer
-            import pdb; pdb.set_trace()
 
             regions = self.extract_regions(index)
             regions = torch.from_numpy(regions)
