@@ -74,9 +74,9 @@ def train_mdnet():
             # pos_regions, neg_regions = dataset[k].next()
             # region(256)
             # shuffle
-            dataset = dataset[k].next()
+            _dataset = dataset[k].next()
             #regions, labels = dataset[k].next()
-            loader = torch.utils.data.DataLoader(dataset, batch_size=256, shuffle=True)
+            loader = torch.utils.data.DataLoader(_dataset, batch_size=256, shuffle=True)
             for a, b in loader:
                 regions = a
                 labels = b

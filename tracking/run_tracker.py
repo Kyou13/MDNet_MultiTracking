@@ -125,15 +125,16 @@ def train(model, criterion, optimizer, pos_feats, neg_feats, maxiter, in_layer='
         ###########################
         ## ランダムで入力シャッフル
         ###########################
-        feats = torch.cat([batch_pos_feats,batch_neg_feats],0)
-        labels = Variable(torch.cat([labels.index_select(0,pos_cur_idx),labels.index_select(0,label_neg_idx)],dim=0))
-
-        #regions, labels = dataset[k].next()
-        loader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(feats,labels), batch_size=256, shuffle=True)
-        import pdb;pdb.set_trace()
-        for a, b in loader:
-            feats = a
-            labels = b
+        
+        _feats = torch.cat([batch_pos_feats,batch_neg_feats],0)
+        _labels = Variable(torch.cat([labels.index_select(0,pos_cur_idx),labels.index_select(0,label_neg_idx)],dim=0))
+        feats = _feats[0::(len(_feats)/2)]
+        labels = _labels[0::(len(_labels)/2)]
+        for i in range(1,(len(_feats)/2)):
+            _tmp_feats = _feats[i::(len(_feats)/2)]
+            feats = torch.cat([feats,_tmp_feats],0)
+            _tmp_labels = _labels[i::(len(_labels)/2)]
+            labels = torch.cat([labels,_tmp_labels],0)
         # forward
         # 128 * 3 , feats 128*4608
         score = model(feats, in_layer=in_layer)
@@ -293,14 +294,6 @@ def run_mdnet(img_list, init_bbox_1, init_bbox_2, gt_1=None, gt_2=None, savefig_
         sample_scores_0 = forward_samples(model, image, samples_0, out_layer='fc6')
         sample_scores_1 = forward_samples(model, image, samples_1, out_layer='fc6')
         # high score top5
-        # byteTensor
-        compaire_score0 = (sample_scores_0[:,0] > sample_scores_0[:,1]) == (sample_scores_0[:,0] > sample_scores_0[:,2])
-        compaire_score1 = (sample_scores_1[:,0] > sample_scores_1[:,1]) == (sample_scores_1[:,0] > sample_scores_1[:,2])
-        for c,comp0,comp1 in enumerate(zip(compaire_score0,compaire_score1):
-            if not comp0:
-                sample_scores_0[c,0] = 0 
-            if not comp1:
-                sample_scores_1[c,1] = 0 
         top_scores_0, top_idx_0 = sample_scores_0[:,0].topk(5)
         top_scores_1, top_idx_1 = sample_scores_1[:,1].topk(5)
         # numpy配列へ変換
