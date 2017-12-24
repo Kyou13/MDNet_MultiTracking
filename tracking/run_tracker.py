@@ -120,7 +120,7 @@ def train(model, criterion, optimizer, pos_feats, neg_feats, maxiter, in_layer='
         # len(11000)
         labels = torch.LongTensor(np.concatenate(([0]*(len(pos_feats)/2),[1]*(len(pos_feats)/2),[2]*len(neg_feats))))
         # negativeラベルに1000のオフセットを持たせる 
-        label_neg_idx = top_idx + torch.LongTensor([1000]*batch_neg)
+        label_neg_idx = top_idx + torch.LongTensor([1000]*batch_neg).cuda()
         # 256(64+192) * 4608
         ###########################
         ## ランダムで入力シャッフル
@@ -294,6 +294,14 @@ def run_mdnet(img_list, init_bbox_1, init_bbox_2, gt_1=None, gt_2=None, savefig_
         sample_scores_0 = forward_samples(model, image, samples_0, out_layer='fc6')
         sample_scores_1 = forward_samples(model, image, samples_1, out_layer='fc6')
         # high score top5
+        comp_high_0 = (sample_scores_0[:,0] > sample_scores_0[:,1]) == (sample_scores_0[:,0] > sample_scores_0[:,2])
+        comp_high_1 = (sample_scores_1[:,1] > sample_scores_1[:,0]) == (sample_scores_1[:,1] > sample_scores_1[:,2])
+        for c,(comp_0,comp_1) in enumerate(zip(comp_high_0, comp_high_1)):
+            if not comp_0:
+                sample_scores_0[c,0] = 0  
+            if not comp_1:
+                sample_scores_1[c,1] = 0  
+
         top_scores_0, top_idx_0 = sample_scores_0[:,0].topk(5)
         top_scores_1, top_idx_1 = sample_scores_1[:,1].topk(5)
         # numpy配列へ変換
